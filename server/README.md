@@ -35,22 +35,22 @@ command it would run without running any: `bash install-gsball-server.sh --dry-r
 
 The installer first **shows its plan and asks before changing anything**:
 
-1. Installs a few packages with apt: `curl`, `ca-certificates`, `unzip`, `tmux`,
-   `gnupg`, and `lib32gcc-s1` (SteamCMD is a 32-bit program).
-2. Installs no Java: the server is a native program, so it needs none.
-3. Creates a user called `gsball` for the server to run as. It has no password.
-4. Downloads SteamCMD from Valve into `/opt/gsball/steamcmd`. The server needs
+1. Installs a few packages with apt: `curl`, `ca-certificates`, `unzip`, `tmux`
+   and `lib32gcc-s1` (SteamCMD is a 32-bit program). No Java: the server is a
+   native program.
+2. Creates a user called `gsball` for the server to run as. It has no password.
+3. Downloads SteamCMD from Valve into `/opt/gsball/steamcmd`. The server needs
    Steam's Linux library from it. Using SteamCMD means accepting the
    [Steam Subscriber Agreement](https://store.steampowered.com/subscriber_agreement/).
-5. Installs the GSBall server into `/opt/gsball/server`. The server comes inside
+4. Installs the GSBall server into `/opt/gsball/server`. The server comes inside
    the installer - it is the only file you download - and the installer checks
    it arrived complete before installing it.
-6. Asks the **setup questions**: server name, how many players, a password,
+5. Asks the **setup questions**: server name, how many players, a password,
    your Steam ID, who else can be an admin, the ports, whether to list it, and
    the starting map. Press Enter to keep a suggested value.
-7. Installs the `gsball-server` service. The server starts right away, and again
+6. Installs the `gsball-server` service. The server starts right away, and again
    whenever the VPS reboots.
-8. Installs the `gsball` command.
+7. Installs the `gsball` command.
 
 It then asks, separately, whether to open the ports in the `ufw` firewall.
 
