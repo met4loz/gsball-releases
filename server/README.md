@@ -38,7 +38,8 @@ The installer first **shows its plan and asks before changing anything**:
 1. Installs a few packages with apt: `curl`, `ca-certificates`, `unzip`, `tmux`
    and `lib32gcc-s1` (SteamCMD is a 32-bit program). No Java: the server is a
    native program.
-2. Creates a user called `gsball` for the server to run as. It has no password.
+2. Creates a user called `gsball` for the server to run as. It has no password
+   and cannot log in, and the server runs with no way to gain more rights.
 3. Downloads SteamCMD from Valve into `/opt/gsball/steamcmd`. The server needs
    Steam's Linux library from it. Using SteamCMD means accepting the
    [Steam Subscriber Agreement](https://store.steampowered.com/subscriber_agreement/).
@@ -50,7 +51,10 @@ The installer first **shows its plan and asks before changing anything**:
    the starting map. Press Enter to keep a suggested value.
 6. Installs the `gsball-server` service. The server starts right away, and again
    whenever the VPS reboots.
-7. Installs the `gsball` command.
+7. Installs the `gsball` command. It, and the copy of the installer it uses for
+   `gsball update` and `gsball uninstall`, belong to root (`/usr/local/bin`,
+   `/usr/local/lib/gsball`): nothing the server itself could change is ever
+   run as root.
 
 It then asks, separately, whether to open the ports in the `ufw` firewall.
 
