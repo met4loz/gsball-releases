@@ -6,9 +6,16 @@ server.
 
 ## What you need
 
-- A VPS running **Ubuntu 22.04 or 24.04, or Debian 12**, on a **64-bit x86
-  (amd64)** processor. ARM servers do not work: Steam's server library has no
-  ARM version.
+- A VPS on a **64-bit x86 (amd64)** processor, running one of:
+  - **Ubuntu 20.04 or newer**, or **Debian 11 or newer**
+  - **Rocky Linux, AlmaLinux, RHEL or Oracle Linux 8 or newer**, CentOS Stream
+    9 or newer, or Fedora
+
+  What actually decides it is the system's C library: the server needs **glibc
+  2.28 or newer**, and the installer checks it before changing anything. ARM
+  servers do not work: Steam's server library has no ARM version. Amazon Linux
+  does not work either: it has no 32-bit packages, and SteamCMD is a 32-bit
+  program. For anything else, see [Other Linux systems](#other-linux-systems).
 - **1 GB of memory** is enough for one server; 2 GB leaves room to spare.
 - A way to run commands as root on it (`sudo`, usually over SSH).
 - **Your Steam ID**, to make yourself the server's owner (see
@@ -35,9 +42,10 @@ command it would run without running any: `bash install-gsball-server.sh --dry-r
 
 The installer first **shows its plan and asks before changing anything**:
 
-1. Installs a few packages with apt: `curl`, `ca-certificates`, `unzip`, `tmux`
-   and `lib32gcc-s1` (SteamCMD is a 32-bit program). No Java: the server is a
-   native program.
+1. Installs a few packages: `curl`, `ca-certificates`, `unzip`, `tar`, `tmux`,
+   `logrotate`, and SteamCMD's 32-bit libraries (`lib32gcc-s1` with apt,
+   `glibc.i686` and `libstdc++.i686` with dnf). No Java: the server is a native
+   program.
 2. Creates a user called `gsball` for the server to run as. It has no password
    and cannot log in, and the server runs with no way to gain more rights.
 3. Downloads SteamCMD from Valve into `/opt/gsball/steamcmd`. The server needs
@@ -56,7 +64,8 @@ The installer first **shows its plan and asks before changing anything**:
    `/usr/local/lib/gsball`): nothing the server itself could change is ever
    run as root.
 
-It then asks, separately, whether to open the ports in the `ufw` firewall.
+It then tells you which ports to open. It never changes a firewall itself: if
+`ufw` or `firewalld` is on, it prints the commands to run.
 
 ## Ports
 
@@ -67,10 +76,11 @@ Players need to reach two **UDP** ports on the VPS:
 | **54555** (`port`) | players connect to it |
 | **27015** (`query-port`) | the room browser asks the server for its name and player count |
 
-The installer can open them in `ufw`. **Many VPS providers have their own
-firewall in their web panel** (often called a *security group* or *firewall
-rules*). If yours does, allow both UDP ports there as well, or nobody can reach
-the server.
+Open both in your **VPS provider's web panel** (often called a *security group*
+or *firewall rules*), if it has one. The installer cannot see that firewall, and
+without it nobody can reach the server. If `ufw` or `firewalld` is on the VPS
+itself, allow them there too; the installer prints the commands but does not run
+them.
 
 ## Managing the server
 
@@ -208,7 +218,8 @@ Something else is using that port, often a second server. Pick another `port`
 (and `query-port`) with `gsball config`.
 
 **Players cannot find the server in the room browser**
-- Both UDP ports must be open: `ufw` on the VPS, **and** your provider's firewall.
+- Both UDP ports must be open: `ufw` or `firewalld` on the VPS, **and** your
+  provider's firewall.
 - `listed` must be `true`.
 - Wait a minute after the server starts.
 - Players must be on the same game version as the server.
@@ -220,6 +231,23 @@ Something else is using that port, often a second server. Pick another `port`
 
 **The server keeps restarting**
 It crashed. `gsball logs` shows why each time.
+
+**"this system's glibc is …"**
+The system is older than the server can run on. Pick a newer system image
+for the VPS (most providers can reinstall it from their web panel).
+
+## Other Linux systems
+
+The installer sets up systems that install packages with `apt` or `dnf`. On
+another 64-bit x86 Linux with glibc 2.28 or newer and systemd, the same steps by
+hand are:
+
+1. Install `curl`, `unzip`, `tar`, `tmux`, `logrotate`, and the 32-bit C and
+   C++ runtime libraries SteamCMD needs (Valve lists the package names for each
+   system).
+2. Run the installer with `--dry-run`. It prints every command it would run,
+   with the service file and the log rotation in full.
+3. Run those commands yourself, skipping the package step.
 
 ## Removing it
 
@@ -245,7 +273,7 @@ that is almost always a typo.
 | `port` | `54555` | The UDP port players connect to. |
 | `bind-address` | *(blank)* | Blank listens on every network interface. `127.0.0.1` (or `localhost`) means only this machine can connect, whatever the firewall or router allows - use it for testing. `-PserverBind=` / `--bind` override it. |
 | `query-port` | `27015` | The UDP port Steam answers server-list queries on. Must differ from `port`; 27015-27020 to be found on a LAN. |
-| `listed` | `true` | List the server in Steam's server list and the room browser. Never listed when bound to 127.0.0.1. An unlisted server opens no query port. |
+| `listed` | `true` | `true`: the server is in the room browser. `false`: it is hidden there and found only by its join code. Either way it registers with Steam and opens the query port. Never registered when bound to 127.0.0.1. |
 | `admin-policy` | `none` | `none`, `power-admins-only-grant` or `first-to-join` - see Who is in charge. |
 | `power-admins` | *(blank)* | Steam account ids (17 digits), comma-separated. |
 | `auto-start` | `false` under `first-to-join`, `true` otherwise | Start matches on their own. |
