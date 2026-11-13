@@ -1,7 +1,7 @@
 {
-  "minBuild": 7,
-  "latestBuild": 7,
-  "latestVersion": "0.5.1",
-  "message": "GSBall 0.5.1 is out. Please download the latest build to continue playing.",
+  "minBuild": 8,
+  "latestBuild": 8,
+  "latestVersion": "0.5.2",
+  "message": "A newer version of GSBall is required to play. Please download the latest build to continue.",
   "downloadUrl": "https://github.com/met4loz/gsball-releases/releases/latest"
 }
