@@ -16,7 +16,7 @@ server.
   servers do not work: Steam's server library has no ARM version. Amazon Linux
   does not work either: it has no 32-bit packages, and SteamCMD is a 32-bit
   program. For anything else, see [Other Linux systems](#other-linux-systems).
-- **1 GB of memory** is enough for one server; 2 GB leaves room to spare.
+- **1 GB of memory and 1 vCPU** are enough for one server; 2 GB leaves room to spare.
 - A way to run commands as root on it (`sudo`, usually over SSH).
 - **Your Steam ID**, to make yourself the server's owner (see
   [Finding your Steam ID](#finding-your-steam-id)).
@@ -74,13 +74,29 @@ Players need to reach two **UDP** ports on the VPS:
 | Port | What for |
 |---|---|
 | **54555** (`port`) | players connect to it |
-| **27015** (`query-port`) | the room browser asks the server for its name and player count |
+| **27015** (`query-port`) | the room browser and join codes find the server through it |
 
 Open both in your **VPS provider's web panel** (often called a *security group*
 or *firewall rules*), if it has one. The installer cannot see that firewall, and
 without it nobody can reach the server. If `ufw` or `firewalld` is on the VPS
 itself, allow them there too; the installer prints the commands but does not run
 them.
+
+## How players find the server
+
+- **The Room Browser.** With `listed=true` (the default) the server has a row
+  there, with its name and player count.
+- **A join code.** Every server has one, which players type in **Join with
+  Code**. It is printed when the server starts and when the installer or
+  `gsball update` finishes, and `gsball code` shows it at any time, without
+  joining the room. **The code changes whenever the server restarts**, because
+  Steam gives the server a new identity each time, so read it again after a
+  restart or an update.
+- **A hidden server.** With `listed=false` there is no row in the Room Browser
+  and only the join code finds the server. Both UDP ports must stay open either
+  way.
+
+Players do not join by IP address.
 
 ## Managing the server
 
@@ -89,6 +105,7 @@ them.
 | `gsball help` | lists every command |
 | `gsball status` | whether the server is running, and its latest log lines |
 | `gsball start` / `gsball stop` / `gsball restart` | start, stop (players are told at once), restart |
+| `gsball code` | shows the server's join code, which players type in Join with Code |
 | `gsball console` | opens the server console, to type commands into it |
 | `gsball send <command>` | runs one console command, e.g. `gsball send players` |
 | `gsball logs` | follows the log (Ctrl+C stops following) |
@@ -106,6 +123,7 @@ them.
 |---|---|
 | `status` | the room, its players and its match |
 | `players` | everyone connected, with their ids |
+| `code` | the join code players type in Join with Code |
 | `say <text>` | a message to everyone in the room |
 | `start` / `end` / `pause` | match controls |
 | `map [name]` | list the maps, or pick the next match's map |
@@ -220,7 +238,8 @@ Something else is using that port, often a second server. Pick another `port`
 **Players cannot find the server in the room browser**
 - Both UDP ports must be open: `ufw` or `firewalld` on the VPS, **and** your
   provider's firewall.
-- `listed` must be `true`.
+- `listed` must be `true`. With `listed=false` the server is hidden from the
+  Room Browser on purpose, and only its join code (`gsball code`) finds it.
 - Wait a minute after the server starts.
 - Players must be on the same game version as the server.
 
@@ -228,6 +247,9 @@ Something else is using that port, often a second server. Pick another `port`
 - Players need Steam running: the server only lets in players whose Steam
   account it can verify.
 - The game port (UDP 54555) must be open.
+- With a join code: the code changes whenever the server restarts, so get the
+  current one with `gsball code`. The query port (UDP 27015) must be open too,
+  since the code finds the server through it.
 
 **The server keeps restarting**
 It crashed. `gsball logs` shows why each time.
@@ -279,7 +301,7 @@ that is almost always a typo.
 | `auto-start` | `false` under `first-to-join`, `true` otherwise | Start matches on their own. |
 | `auto-start-delay-seconds` | `10` | How long both teams must be ready before a match starts. |
 | `auto-start-min-per-team` | `1` | Players each team needs before the countdown begins. |
-| `map` | `Normal` | `Small`, `Normal`, `Big A`, `Big B`, `Big - 3DEF`, `Huge`, `Last Man Standing` or `Practice`. |
+| `map` | `Medium` | `Small`, `Medium`, `Big A`, `Big B`, `Big - 3DEF`, `Huge`, `Last Man Standing` or `Practice`. |
 | `time-limit-minutes` | `5` | `0` for no limit, otherwise 1 to 20. |
 | `score-limit` | `5` | `0` for no limit, otherwise 1 to 20. |
 | `golden-goal` | `false` | |
@@ -289,6 +311,7 @@ that is almost always a typo.
 | `kick-idle-players` | `false` | Kick after `idle-kick-minutes` with no activity. Admins are never kicked. |
 | `room-ball` | empty | The ball everyone in the room sees, as an item id such as `ball.default`. Empty or `own`: each player sees their own. |
 | `room-pitch` | empty | The pitch theme everyone sees: `pitch.floodlit`, `pitch.sunbaked`, `pitch.court`. Empty or `own`: each player's own. A player can keep their own with a setting; an id their build does not know draws as the default. |
+| `room-stadium` | empty | The stadium everyone sees round the pitch: `stadium.none`, `stadium.match-night`, `stadium.clean-arena`, `stadium.club-ground`. Empty or `own`: each player's own. Same rules as `room-pitch`. |
 | `persist-bans` | `true` | Save bans on verified Steam accounts across restarts. |
 | `ban-file` | `gsball-bans.txt` | Where, relative to the server's working directory. |
 | `reset-when-empty` | `true` | Put this file's settings back when the room empties. |
@@ -296,7 +319,7 @@ that is almost always a typo.
 | `admins` | *(blank)* | Steam account ids made an admin whenever they join, under every admin policy. Unlike power admins, the room can kick and demote them (until they next join). |
 | `allowed-players` | *(blank)* | Only these Steam account ids may join. Power admins and `admins` always may. Blank lets anyone in. |
 | `max-per-team` | `0` | Players a team may hold, 1 to 10. `0` means no cap. Nobody in the room can go past it, admins included; the console can. Must not be below `auto-start-min-per-team`. |
-| `map-rotation` | *(blank)* | Maps played in turn, such as `Normal, Big A, Huge`. The next one is picked after each match that finishes (score, time, golden goal, mercy); an admin's End does not rotate. Blank keeps the map. Practice cannot be in it: its match never ends. |
+| `map-rotation` | *(blank)* | Maps played in turn, such as `Medium, Big A, Huge`. The next one is picked after each match that finishes (score, time, golden goal, mercy); an admin's End does not rotate. Blank keeps the map. Practice cannot be in it: its match never ends. |
 | `welcome-message` | *(blank)* | Said privately to every player as they join. At most 240 characters. |
 | `persist-mutes` | `true` | Keep server mutes, each on a Steam account, across rejoins and restarts, in `mute-file`. |
 | `mute-file` | `gsball-mutes.txt` | Where, relative to the server's working directory. Must not be the ban file. |
@@ -357,10 +380,11 @@ Type commands into the server's terminal. A player can be named by the id
 | `help` | Lists the commands. |
 | `status` | Room name, players, admin policy, map, and the match and its score. |
 | `players` | Everyone connected, with ids, teams, admins, power admins, pings, and `steam:<id>` for verified players. |
+| `code` | The server's join code, which players type in Join with Code. It changes whenever the server restarts. |
 | `say <text>` | A message to the whole room. |
 | `start` / `end` / `pause` | Match controls. `start` restarts a match that is already running. |
 | `map [name]` | Lists the maps, or picks the next match's map. |
-| `look [ball\|own] [pitch\|own]` | Reports what everyone sees, or sets it: `look ball.default pitch.court`, `look own own`. Works mid-match; the room is told. |
+| `look [ball\|own] [pitch\|own] [stadium\|own]` | Reports what everyone sees, or sets it: `look ball.default pitch.court stadium.match-night`, `look own own own`. Without the third id the stadium stays as it is. Works mid-match; the room is told. |
 | `lock` / `unlock` | Locks or unlocks the teams. |
 | `kick <player> [reason]` | Removes a player - a power admin too. They are told the reason. |
 | `ban <player> [reason]` | Removes and bans a player (not a power admin). |
